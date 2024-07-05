@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Emojis</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #fff;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+        }
+
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .red {
+            background-color: rgba(255, 0, 0, 0.2);
+        }
+
+        .green {
+            background-color: rgba(0, 255, 0, 0.2);
+        }
+
+        .blue {
+            background-color: rgba(0, 0, 255, 0.2);
+        }
+
+        .modal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background-color: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        #startBtn,
+        #restartBtn,
+        #restartGameBtn {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #ff4081;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #startBtn:hover,
+        #restartBtn:hover,
+        #restartGameBtn:hover {
+            background-color: #e91e63;
+        }
+
+        .money-field {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-money-field {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+        }
+
+        .bet-input {
+            margin-top: 10px;
+        }
+
+        .choice-buttons {
+            margin-top: 20px;
+        }
+
+        .choice-buttons button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #2196F3;
+            color: #fff;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .choice-buttons button:hover {
+            background-color: #1976D2;
+        }
+
+        .choice-buttons button.toggled {
+            background-color: #1976D2;
+            border: 2px solid #ff4081;
+        }
+
+        .weight-display {
+            display: block;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Money Field -->
+    <div class="money-field" id="moneyField">$100</div>
+
+    <!-- Start Modal -->
+    <div id="startModal" class="modal">
+        <div class="modal-content">
+            <p>Ready to start the game?</p>
+            <p>Enter the amount of money to bet:</p>
+            <input type="number" id="betAmount" value="10" min="0" max="100" step="1"
+                style="padding: 5px; font-size: 16px;" oninput="updatePotentialWinnings()">
+            <div class="choice-buttons">
+                <button id="rockBtn" onclick="toggleChoice('rock')">Rock 🪨</button>
+                <span id="rockWeight" class="weight-display">Bet Weight: 1</span>
+                <button id="paperBtn" onclick="toggleChoice('paper')">Paper 📄</button>
+                <span id="paperWeight" class="weight-display">Bet Weight: 1</span>
+                <button id="scissorsBtn" onclick="toggleChoice('scissors')">Scissors ✂️</button>
+                <span id="scissorsWeight" class="weight-display">Bet Weight: 1</span>
+            </div>
+            <p id="potentialWinnings" class="weight-display">Potential Winnings: $0</p>
+            <button id="startBtn">Start Game</button>
+        </div>
+    </div>
+
+    <!-- Winner Modal -->
+    <div id="winnerModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <p id="winnerMessage"></p>
+            <div class="modal-money-field" id="winnerMoneyField"></div>
+            <div class="bet-input">
+                <p>Enter the new bet amount:</p>
+                <input type="number" id="newBetAmount" value="10" min="0" max="100" step="1"
+                    style="padding: 5px; font-size: 16px;" oninput="updatePotentialWinnings()">
+            </div>
+            <div class="choice-buttons">
+                <button id="rockBtnEnd" onclick="toggleChoice('rock')">Rock 🪨</button>
+                <span id="rockWeightEnd" class="weight-display">Bet Weight: 1</span>
+                <button id="paperBtnEnd" onclick="toggleChoice('paper')">Paper 📄</button>
+                <span id="paperWeightEnd" class="weight-display">Bet Weight: 1</span>
+                <button id="scissorsBtnEnd" onclick="toggleChoice('scissors')">Scissors ✂️</button>
+                <span id="scissorsWeightEnd" class="weight-display">Bet Weight: 1</span>
+            </div>
+            <p id="potentialWinningsEnd" class="weight-display">Potential Winnings: $0</p>
+            <button id="restartBtn">Start New Round</button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <p>Game Over! You have run out of money.</p>
+            <button id="restartGameBtn">Restart Game with $100</button>
+        </div>
+    </div>
+
+    <script>
+        const numBubbles = 10;
+        const bubbles = [];
+        const targetSpeed = 3; // target speed for bubbles
+        const speedMargin = 0.1 * targetSpeed; // 10% margin
+        const minBubbleSize = 24;
+        const maxBubbleSize = 74;
+        let totalMoney = 100;
+
+        const emojiMap = {
+            red: '✂️', // scissors
+            blue: '🪨', // rock (stone)
+            green: '📄' // paper
+        };
+
+        let playerChoice = '';
+        let currentBetAmount = 0;
+
+        // Bet weights
+        let betWeights = {
+            rock: 1,
+            paper: 1,
+            scissors: 1
+        };
+
+        // Initial bet weights
+        let initialBetWeights = {
+            rock: 1,
+            paper: 1,
+            scissors: 1
+        };
+
+        function createBubble(colorClass) {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble', colorClass);
+            bubble.textContent = emojiMap[colorClass];
+            const size = Math.random() * (maxBubbleSize - minBubbleSize) + minBubbleSize;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.left = `${Math.random() * window.innerWidth}px`;
+            bubble.style.top = `${Math.random() * window.innerHeight}px`;
+
+            bubble.radius = size / 2;
+            const initialSpeed = targetSpeed + (Math.random() * 2 - 1) * speedMargin;
+            const angle = Math.random() * 2 * Math.PI;
+            bubble.speedX = initialSpeed * Math.cos(angle);
+            bubble.speedY = initialSpeed * Math.sin(angle);
+
+            document.body.appendChild(bubble);
+            return bubble;
+        }
+
+        function updateBubble(bubble) {
+            let x = bubble.offsetLeft + bubble.speedX;
+            let y = bubble.offsetTop + bubble.speedY;
+
+            if (x < 0 || x > window.innerWidth - bubble.offsetWidth) {
+                bubble.speedX *= -1;
+                x = Math.max(0, Math.min(x, window.innerWidth - bubble.offsetWidth));
+            }
+
+            if (y < 0 || y > window.innerHeight - bubble.offsetHeight) {
+                bubble.speedY *= -1;
+                y = Math.max(0, Math.min(y, window.innerHeight - bubble.offsetHeight));
+            }
+
+            bubble.style.left = `${x}px`;
+            bubble.style.top = `${y}px`;
+        }
+
+        function detectCollision(bubble1, bubble2) {
+            const dx = bubble1.offsetLeft + bubble1.radius - (bubble2.offsetLeft + bubble2.radius);
+            const dy = bubble1.offsetTop + bubble1.radius - (bubble2.offsetTop + bubble2.radius);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < bubble1.radius + bubble2.radius;
+        }
+
+        function resolveCollision(bubble1, bubble2) {
+            const dx = bubble1.offsetLeft + bubble1.radius - (bubble2.offsetLeft + bubble2.radius);
+            const dy = bubble1.offsetTop + bubble1.radius - (bubble2.offsetTop + bubble2.radius);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            const overlap = (bubble1.radius + bubble2.radius) - distance;
+
+            const collisionAngle = Math.atan2(dy, dx);
+
+            const speed1 = Math.sqrt(bubble1.speedX * bubble1.speedX + bubble1.speedY * bubble1.speedY);
+            const speed2 = Math.sqrt(bubble2.speedX * bubble2.speedX + bubble2.speedY * bubble2.speedY);
+
+            const direction1 = Math.atan2(bubble1.speedY, bubble1.speedX);
+            const direction2 = Math.atan2(bubble2.speedY, bubble2.speedX);
+
+            const velocityX1 = speed1 * Math.cos(direction1 - collisionAngle);
+            const velocityY1 = speed1 * Math.sin(direction1 - collisionAngle);
+            const velocityX2 = speed2 * Math.cos(direction2 - collisionAngle);
+            const velocityY2 = speed2 * Math.sin(direction2 - collisionAngle);
+
+            const finalVelocityX1 = ((bubble1.radius - bubble2.radius) * velocityX1 + (2 * bubble2.radius) * velocityX2) / (bubble1.radius + bubble2.radius);
+            const finalVelocityX2 = ((2 * bubble1.radius) * velocityX1 + (bubble2.radius - bubble1.radius) * velocityX2) / (bubble1.radius + bubble2.radius);
+
+            const finalVelocityY1 = velocityY1;
+            const finalVelocityY2 = velocityY2;
+
+            bubble1.speedX = Math.cos(collisionAngle) * finalVelocityX1 + Math.cos(collisionAngle + Math.PI / 2) * finalVelocityY1;
+            bubble1.speedY = Math.sin(collisionAngle) * finalVelocityX1 + Math.sin(collisionAngle + Math.PI / 2) * finalVelocityY1;
+            bubble2.speedX = Math.cos(collisionAngle) * finalVelocityX2 + Math.cos(collisionAngle + Math.PI / 2) * finalVelocityY2;
+            bubble2.speedY = Math.sin(collisionAngle) * finalVelocityX2 + Math.sin(collisionAngle + Math.PI / 2) * finalVelocityY2;
+
+            // Adjust positions to ensure no overlap
+            const separationX = overlap * Math.cos(collisionAngle) / 2;
+            const separationY = overlap * Math.sin(collisionAngle) / 2;
+
+            bubble1.style.left = `${bubble1.offsetLeft + separationX}px`;
+            bubble1.style.top = `${bubble1.offsetTop + separationY}px`;
+
+            bubble2.style.left = `${bubble2.offsetLeft - separationX}px`;
+            bubble2.style.top = `${bubble2.offsetTop - separationY}px`;
+
+            // Ensure speeds are within the target range
+            const adjustSpeed = (bubble) => {
+                const speed = Math.sqrt(bubble.speedX * bubble.speedX + bubble.speedY * bubble.speedY);
+                if (speed < targetSpeed - speedMargin || speed > targetSpeed + speedMargin) {
+                    const scale = targetSpeed / speed;
+                    bubble.speedX *= scale;
+                    bubble.speedY *= scale;
+                }
+            };
+
+            adjustSpeed(bubble1);
+            adjustSpeed(bubble2);
+
+            // Change colors based on collision rules
+            if (bubble1.classList.contains('red') && bubble2.classList.contains('blue')) {
+                bubble1.classList.remove('red');
+                bubble1.classList.add('blue');
+                bubble1.textContent = emojiMap['blue'];
+            } else if (bubble1.classList.contains('blue') && bubble2.classList.contains('red')) {
+                bubble2.classList.remove('red');
+                bubble2.classList.add('blue');
+                bubble2.textContent = emojiMap['blue'];
+            } else if (bubble1.classList.contains('blue') && bubble2.classList.contains('green')) {
+                bubble1.classList.remove('blue');
+                bubble1.classList.add('green');
+                bubble1.textContent = emojiMap['green'];
+            } else if (bubble1.classList.contains('green') && bubble2.classList.contains('blue')) {
+                bubble2.classList.remove('blue');
+                bubble2.classList.add('green');
+                bubble2.textContent = emojiMap['green'];
+            } else if (bubble1.classList.contains('green') && bubble2.classList.contains('red')) {
+                bubble1.classList.remove('green');
+                bubble1.classList.add('red');
+                bubble1.textContent = emojiMap['red'];
+            } else if (bubble1.classList.contains('red') && bubble2.classList.contains('green')) {
+                bubble2.classList.remove('green');
+                bubble2.classList.add('red');
+                bubble2.textContent = emojiMap['red'];
+            }
+        }
+
+        function animate() {
+            for (let i = 0; i < bubbles.length; i++) {
+                updateBubble(bubbles[i]);
+                for (let j = i + 1; j < bubbles.length; j++) {
+                    if (detectCollision(bubbles[i], bubbles[j])) {
+                        resolveCollision(bubbles[i], bubbles[j]);
+                    }
+                }
+            }
+            checkWinner();
+            requestAnimationFrame(animate);
+        }
+
+        function checkWinner() {
+            const redBubbles = bubbles.filter(b => b.classList.contains('red')).length;
+            const greenBubbles = bubbles.filter(b => b.classList.contains('green')).length;
+            const blueBubbles = bubbles.filter(b => b.classList.contains('blue')).length;
+
+            if (redBubbles === 0 && greenBubbles === 0) {
+                showWinner('rock');
+            } else if (redBubbles === 0 && blueBubbles === 0) {
+                showWinner('paper');
+            } else if (greenBubbles === 0 && blueBubbles === 0) {
+                showWinner('scissors');
+            }
+        }
+
+        function showWinner(winner) {
+            const winnerModal = document.getElementById('winnerModal');
+            const winnerMessage = document.getElementById('winnerMessage');
+            let resultMessage = '';
+            if (playerChoice === winner) {
+                resultMessage = "You won this round!";
+                totalMoney += currentBetAmount * initialBetWeights[winner] * 1.1; // Use the initial bet weight for calculation
+            } else {
+                resultMessage = "You lost this round!";
+                // No additional deduction here as the bet amount was already deducted at the start
+            }
+            adjustBetWeights(winner);
+            winnerMessage.textContent = `${resultMessage} ${capitalize(winner)} wins!`;
+            updateWinnerMoneyField();
+            updateMoneyField(); // Ensure the top right money field is updated
+            updateBetWeightsDisplay(); // Update the bet weights display
+
+            if (totalMoney <= 0) {
+                document.getElementById('gameOverModal').style.display = 'flex';
+            } else {
+                winnerModal.style.display = 'flex';
+            }
+
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        function adjustBetWeights(winner) {
+            const choices = ['rock', 'paper', 'scissors'];
+            choices.forEach(choice => {
+                if (choice === winner) {
+                    betWeights[choice] = Math.max(1, betWeights[choice] - 0.1);
+                } else {
+                    betWeights[choice] += 0.1;
+                }
+            });
+        }
+
+        function updateBetWeightsDisplay() {
+            document.getElementById('rockWeight').textContent = `Bet Weight: ${betWeights.rock.toFixed(1)}`;
+            document.getElementById('paperWeight').textContent = `Bet Weight: ${betWeights.paper.toFixed(1)}`;
+            document.getElementById('scissorsWeight').textContent = `Bet Weight: ${betWeights.scissors.toFixed(1)}`;
+
+            document.getElementById('rockWeightEnd').textContent = `Bet Weight: ${betWeights.rock.toFixed(1)}`;
+            document.getElementById('paperWeightEnd').textContent = `Bet Weight: ${betWeights.paper.toFixed(1)}`;
+            document.getElementById('scissorsWeightEnd').textContent = `Bet Weight: ${betWeights.scissors.toFixed(1)}`;
+        }
+
+        function updatePotentialWinnings() {
+            const betAmount = parseFloat(document.getElementById('betAmount').value);
+            let potentialWinnings = 0;
+
+            if (playerChoice) {
+                potentialWinnings = betAmount * betWeights[playerChoice] * 1.1;
+            }
+
+            document.getElementById('potentialWinnings').textContent = `Potential Winnings: $${potentialWinnings.toFixed(2)}`;
+            document.getElementById('potentialWinningsEnd').textContent = `Potential Winnings: $${potentialWinnings.toFixed(2)}`;
+        }
+
+        function capitalize(word) {
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        }
+
+        function createBubbles(colorClass, num) {
+            for (let i = 0; i < num; i++) {
+                bubbles.push(createBubble(colorClass));
+            }
+        }
+
+        function startGame() {
+            const betAmount = parseFloat(document.getElementById('betAmount').value);
+            if (betAmount > totalMoney || betAmount < 0) {
+                alert('Invalid bet amount.');
+                return;
+            }
+
+            totalMoney -= betAmount;
+            currentBetAmount = betAmount; // Store the current bet amount for use in win calculation
+
+            // Store the initial bet weights
+            initialBetWeights = { ...betWeights };
+
+            updateMoneyField();
+
+            createBubbles('red', numBubbles);
+            createBubbles('green', numBubbles);
+            createBubbles('blue', numBubbles);
+
+            animate();
+        }
+
+        function restartGame() {
+            const betAmount = parseFloat(document.getElementById('newBetAmount').value);
+            if (betAmount > totalMoney || betAmount < 0) {
+                alert('Invalid bet amount.');
+                return;
+            }
+
+            currentBetAmount = betAmount; // Store the current bet amount for use in win calculation
+            updateMoneyField();
+
+            const bubbleElements = document.querySelectorAll('.bubble');
+            bubbleElements.forEach(bubble => bubble.remove());
+            bubbles.length = 0;
+            startGame();
+            document.getElementById('winnerModal').style.display = 'none';
+        }
+
+        function updateMoneyField() {
+            const moneyField = document.getElementById('moneyField');
+            moneyField.textContent = `$${totalMoney}`;
+        }
+
+        function updateWinnerMoneyField() {
+            const winnerMoneyField = document.getElementById('winnerMoneyField');
+            winnerMoneyField.textContent = `Remaining money: $${totalMoney}`;
+        }
+
+        function toggleChoice(choice) {
+            playerChoice = choice;
+            const choices = ['rock', 'paper', 'scissors'];
+            choices.forEach(c => {
+                const startButton = document.getElementById(`${c}Btn`);
+                const endButton = document.getElementById(`${c}BtnEnd`);
+                if (c === choice) {
+                    startButton.classList.add('toggled');
+                    endButton.classList.add('toggled');
+                } else {
+                    startButton.classList.remove('toggled');
+                    endButton.classList.remove('toggled');
+                }
+            });
+            updatePotentialWinnings(); // Update potential winnings when choice changes
+        }
+
+        // Modal functionality
+        const startModal = document.getElementById('startModal');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+
+        startBtn.onclick = function() {
+            if (playerChoice) {
+                startModal.style.display = 'none';
+                startGame();
+            } else {
+                alert('Please select rock, paper, or scissors to start the game.');
+            }
+        }
+
+        restartBtn.onclick = function() {
+            if (playerChoice) {
+                restartGame();
+            } else {
+                alert('Please select rock, paper, or scissors to start the new round.');
+            }
+        }
+
+        document.getElementById('restartGameBtn').onclick = function() {
+            totalMoney = 100;
+            betWeights = {
+                rock: 1,
+                paper: 1,
+                scissors: 1
+            };
+            updateMoneyField();
+            updateBetWeightsDisplay();
+            document.getElementById('gameOverModal').style.display = 'none';
+            startModal.style.display = 'flex';
+        }
+
+        // Show the start modal when the page loads
+        window.onload = function() {
+            startModal.style.display = 'flex';
+            updateBetWeightsDisplay(); // Ensure bet weights are displayed initially
+        }
+    </script>
+</body>
+
+</html>
